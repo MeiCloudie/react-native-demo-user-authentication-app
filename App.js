@@ -1,9 +1,10 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useCallback } from "react";
+import { View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import AppLoading from "expo-app-loading";
+import * as SplashScreen from "expo-splash-screen";
 
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
@@ -69,29 +70,37 @@ function Navigation() {
 }
 
 function Root() {
-  const [isTryingLogin, setIsTryingLogin] = useState(true);
-
+  const [appIsReady, setAppIsReady] = useState(false);
   const authCtx = useContext(AuthContext);
 
   useEffect(() => {
-    async function fetchToken() {
+    const fetchToken = async () => {
       const storedToken = await AsyncStorage.getItem("token");
 
       if (storedToken) {
         authCtx.authenticate(storedToken);
       }
 
-      setIsTryingLogin(false);
-    }
-
+      setAppIsReady(true);
+    };
     fetchToken();
   }, []);
 
-  if (isTryingLogin) {
-    return <AppLoading />;
+  const onLayoutRootView = useCallback(async () => {
+    if (appIsReady) {
+      await SplashScreen.hideAsync();
+    }
+  }, [appIsReady]);
+
+  if (!appIsReady) {
+    return null;
   }
 
-  return <Navigation />;
+  return (
+    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+      <Navigation />
+    </View>
+  );
 }
 
 export default function App() {
